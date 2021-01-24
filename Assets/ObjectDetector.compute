@@ -1,0 +1,81 @@
+#pragma kernel Preprocessor
+#pragma kernel Postprocessor
+
+//
+// Preprocessor
+//
+
+sampler2D _Texture;
+RWBuffer<float> _Tensor;
+uint _ImageSize;
+
+[numthreads(8, 8, 1)]
+void Preprocessor(uint3 id : SV_DispatchThreadID)
+{
+    float2 uv = (id.xy + 0.5) / float2(_ImageSize, _ImageSize);
+    uv.y = 1 - uv.y;
+
+    float2 dx = float2(1.0 / _ImageSize, 0);
+    float2 dy = float2(0, -1.0 / _ImageSize);
+
+    float3 rgb = tex2Dgrad(_Texture, uv, dx, dy).rgb * 255;
+
+    uint offs = (id.y * _ImageSize + id.x) * 3;
+    _Tensor[offs + 0] = rgb.r;
+    _Tensor[offs + 1] = rgb.g;
+    _Tensor[offs + 2] = rgb.b;
+}
+
+// 
+// Postprocessor
+//
+
+#include "BoundingBox.hlsl"
+
+Texture2D _Input;
+RWStructuredBuffer<BoundingBox> _Output;
+
+#define CELLS_IN_ROW 13
+#define CLASS_COUNT 20
+#define ANCHOR_COUNT 5
+
+float Sigmoid(float x)
+{
+    return 1 / (1 + exp(-x));
+}
+
+static float2 anchors[] = { float2(1.08, 1.19),
+                            float2(3.42, 4.41),
+                            float2(6.63, 11.38),
+                            float2(9.42, 5.11),
+                            float2(16.62, 10.52) };
+
+[numthreads(CELLS_IN_ROW, CELLS_IN_ROW, 1)]
+void Postprocessor(uint3 id : SV_DispatchThreadID)
+{
+    BoundingBox box;
+
+    box.index = (id.x + id.y) % 20;
+
+    uint ref_y = id.y * CELLS_IN_ROW + id.x;
+    uint out_offs = (id.y * CELLS_IN_ROW + id.x) * ANCHOR_COUNT;
+
+    for (uint aidx = 0; aidx < ANCHOR_COUNT - 3; aidx++)
+    {
+        uint ref_x = aidx * (5 + CLASS_COUNT);
+
+        float x = _Input[uint2(ref_x + 0, ref_y)].x;
+        float y = _Input[uint2(ref_x + 1, ref_y)].x;
+        float w = _Input[uint2(ref_x + 2, ref_y)].x;
+        float h = _Input[uint2(ref_x + 3, ref_y)].x;
+        float c = _Input[uint2(ref_x + 4, ref_y)].x;
+
+        box.x = (id.x + 1 - Sigmoid(x)) / CELLS_IN_ROW;
+        box.y = (id.y + 1 - Sigmoid(y)) / CELLS_IN_ROW;
+        box.w = exp(w) * anchors[aidx].x / CELLS_IN_ROW;
+        box.h = exp(h) * anchors[aidx].y / CELLS_IN_ROW;
+        box.confidence = Sigmoid(c);
+
+        _Output[out_offs++] = box;
+    }
+}
