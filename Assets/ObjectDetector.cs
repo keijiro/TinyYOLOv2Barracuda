@@ -1,11 +1,18 @@
 using UnityEngine;
 using Unity.Barracuda;
+using UI = UnityEngine.UI;
 
 namespace TinyYoloV2 {
 
 sealed class ObjectDetector : MonoBehaviour
 {
     #region Editable attributes
+
+    [SerializeField] UI.RawImage _previewUI = null;
+
+    #endregion
+
+    #region External asset references
 
     [SerializeField, HideInInspector] NNModel _model = null;
     [SerializeField, HideInInspector] ComputeShader _compute = null;
@@ -42,13 +49,14 @@ sealed class ObjectDetector : MonoBehaviour
     void Start()
     {
         _webcamRaw = new WebCamTexture();
-        _webcamBuffer = new RenderTexture(1920, 1080, 0);
+        _webcamBuffer = new RenderTexture(1080, 1080, 0);
         _preBuffer = new ComputeBuffer(InputTensorSize, sizeof(float));
         _postBuffer = new ComputeBuffer(OutputDataCount, sizeof(float) * 6);
         _visualizer = new Material(_visualizerShader);
         _worker = ModelLoader.Load(_model).CreateWorker();
 
         _webcamRaw.Play();
+        _previewUI.texture = _webcamBuffer;
     }
 
     void OnDisable()
@@ -72,13 +80,14 @@ sealed class ObjectDetector : MonoBehaviour
 
     void Update()
     {
-        // Do nothing if there is no update on the webcam.
-        if (!_webcamRaw.didUpdateThisFrame) return;
+        // Check if the webcam is ready (needed for macOS support)
+        if (_webcamRaw.width <= 16) return;
 
         // Input buffer update
         var vflip = _webcamRaw.videoVerticallyMirrored;
-        var scale = new Vector2(1, vflip ? -1 : 1);
-        var offset = new Vector2(0, vflip ? 1 : 0);
+        var aspect = (float)_webcamRaw.height / _webcamRaw.width;
+        var scale = new Vector2(aspect, vflip ? -1 : 1);
+        var offset = new Vector2(aspect / 2, vflip ? 1 : 0);
         Graphics.Blit(_webcamRaw, _webcamBuffer, scale, offset);
 
         // Preprocessing
@@ -113,14 +122,9 @@ sealed class ObjectDetector : MonoBehaviour
 
     void OnPostRender()
     {
-        _visualizer.SetPass(0);
-        _visualizer.SetTexture("_CameraFeed", _webcamBuffer);
-        Graphics.DrawProceduralNow(MeshTopology.Quads, 4, 1);
-
-        _visualizer.SetPass(1);
         _visualizer.SetBuffer("_Boxes", _postBuffer);
-        Graphics.DrawProceduralNow
-          (MeshTopology.Quads, 4, OutputDataCount);
+        _visualizer.SetPass(0);
+        Graphics.DrawProceduralNow(MeshTopology.Quads, 4, OutputDataCount);
     }
 
     #endregion

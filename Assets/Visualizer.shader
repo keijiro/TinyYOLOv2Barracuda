@@ -8,30 +8,6 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
     CGINCLUDE
 
     #include "UnityCG.cginc"
-
-    // Camera feed blit
-
-    sampler2D _CameraFeed;
-
-    void VertexBlit(uint vid : SV_VertexID,
-                    out float4 position : SV_Position,
-                    out float2 uv : TEXCOORD0)
-    {
-        float x = vid >> 1;
-        float y = (vid & 1) ^ (vid >> 1);
-
-        position = float4(float2(x, y) * 2 - 1, 1, 1);
-        uv = float2(x, y);
-    }
-
-    float4 FragmentBlit(float4 position : SV_Position,
-                        float2 uv : TEXCOORD0) : SV_Target
-    {
-        return tex2D(_CameraFeed, uv);
-    }
-
-    // Bounding box visualizer
-
     #include "BoundingBox.hlsl"
 
     StructuredBuffer<BoundingBox> _Boxes;
@@ -43,12 +19,18 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
     {
         BoundingBox box = _Boxes[iid];
 
+        // Bounding box vertex
         float x = box.x + box.w * lerp(-0.5, 0.5, vid >> 1);
         float y = box.y + box.h * lerp(-0.5, 0.5, (vid & 1) ^ (vid >> 1));
 
+        // Clip space to screen space
         x = -2 * x + 1;
         y =  2 * y - 1;
 
+        // Aspect ratio compensation
+        x = x * _ScreenParams.y / _ScreenParams.x;
+
+        // Vertex attributes
         position = float4(x, y, 1, 1);
         color = box.confidence > 0.3;
     }
@@ -63,14 +45,6 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
 
     SubShader
     {
-        Pass
-        {
-            ZTest Always ZWrite Off Cull Off
-            CGPROGRAM
-            #pragma vertex VertexBlit
-            #pragma fragment FragmentBlit
-            ENDCG
-        }
         Pass
         {
             ZTest Always ZWrite Off Cull Off Blend One One
