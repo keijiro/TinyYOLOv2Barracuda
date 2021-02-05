@@ -87,7 +87,7 @@ sealed class ObjectDetector : MonoBehaviour
         var vflip = _webcamRaw.videoVerticallyMirrored;
         var aspect = (float)_webcamRaw.height / _webcamRaw.width;
         var scale = new Vector2(aspect, vflip ? -1 : 1);
-        var offset = new Vector2(aspect / 2, vflip ? 1 : 0);
+        var offset = new Vector2((1 - aspect) / 2, vflip ? 1 : 0);
         Graphics.Blit(_webcamRaw, _webcamBuffer, scale, offset);
 
         // Preprocessing
