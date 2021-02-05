@@ -147,6 +147,7 @@ PlayerSettings:
   androidMaxAspectRatio: 2.1
   applicationIdentifier:
     Standalone: com.DefaultCompany.TinyYOLOv2Barracuda
+    iPhone: com.DefaultCompany.TinyYOLOv2Barracuda
   buildNumber:
     Standalone: 0
     iPhone: 0
@@ -313,7 +314,7 @@ PlayerSettings:
   enableInternalProfiler: 0
   logObjCUncaughtExceptions: 1
   enableCrashReportAPI: 0
-  cameraUsageDescription: 
+  cameraUsageDescription: This app requires the camera device access.
   locationUsageDescription: 
   microphoneUsageDescription: 
   switchNMETAOverride: 
