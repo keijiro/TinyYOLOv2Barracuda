@@ -94,7 +94,7 @@ sealed class ObjectDetector : MonoBehaviour
         // Postprocessing
         var output = _worker.PeekOutput();
         var reshape = new TensorShape
-          (1, 3 * CellsInRow * CellsInRow, AnchorCount * (5 + ClassCount), 1);
+          (1, CellsInRow * CellsInRow, AnchorCount * (5 + ClassCount), 1);
 
         using (var reshaped = output.Reshape(reshape))
         {
