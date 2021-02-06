@@ -24,13 +24,14 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
         float y = box.y + box.h * lerp(-0.5, 0.5, (vid & 1) ^ (vid >> 1));
 
         // Clip space to screen space
-        float2 p = float2(x, y) * 2 - 1;
+        x =  2 * x - 1;
+        y = -2 * y + 1;
 
         // Aspect ratio compensation
-        p.x = p.x * _ScreenParams.y / _ScreenParams.x;
+        x = x * _ScreenParams.y / _ScreenParams.x;
 
         // Vertex attributes
-        position = float4(p, 1, 1);
+        position = float4(x, y, 1, 1);
         color = box.confidence > 0.3;
     }
 
