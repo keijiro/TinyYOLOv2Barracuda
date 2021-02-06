@@ -12,6 +12,12 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
 
     StructuredBuffer<BoundingBox> _Boxes;
 
+    float3 GetClassColor(uint i)
+    {
+        float h = (i / 24.0) * 6 - 2;
+        return saturate(float3(abs(h - 1) - 1, 2 - abs(h), 2 - abs(h - 2)));
+    }
+
     void VertexKeyPoints(uint vid : SV_VertexID,
                          uint iid : SV_InstanceID,
                          out float4 position : SV_Position,
@@ -32,13 +38,13 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
 
         // Vertex attributes
         position = float4(x, y, 1, 1);
-        color = box.confidence > 0.3;
+        color = float4(GetClassColor(box.classIndex), box.confidence);
     }
 
     float4 FragmentKeyPoints(float4 position : SV_Position,
                              float4 color : COLOR) : SV_Target
     {
-        return color * 0.3;
+        return color * color.a;
     }
 
     ENDCG

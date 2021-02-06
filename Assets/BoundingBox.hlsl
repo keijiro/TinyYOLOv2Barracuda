@@ -1,6 +1,6 @@
 struct BoundingBox
 {
     float x, y, w, h;
-    uint index;
+    uint classIndex;
     float confidence;
 };
