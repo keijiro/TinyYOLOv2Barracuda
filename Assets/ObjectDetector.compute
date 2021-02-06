@@ -33,7 +33,7 @@ void Preprocessor(uint3 id : SV_DispatchThreadID)
 #include "BoundingBox.hlsl"
 
 Texture2D _Input;
-RWStructuredBuffer<BoundingBox> _Output;
+AppendStructuredBuffer<BoundingBox> _Output;
 
 #define CELLS_IN_ROW 13
 #define CLASS_COUNT 20
@@ -91,6 +91,6 @@ void Postprocessor(uint3 id : SV_DispatchThreadID)
         box.classIndex = classIndex;
         box.confidence = Sigmoid(c) * maxScore / scoreSum;
 
-        _Output[out_offs++] = box;
+        if (box.confidence > 0.1) _Output.Append(box);
     }
 }

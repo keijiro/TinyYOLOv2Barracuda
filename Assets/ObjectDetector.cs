@@ -39,6 +39,7 @@ sealed class ObjectDetector : MonoBehaviour
     RenderTexture _webcamBuffer;
     ComputeBuffer _preBuffer;
     ComputeBuffer _postBuffer;
+    ComputeBuffer _drawArgs;
     Material _visualizer;
     IWorker _worker;
 
@@ -51,12 +52,17 @@ sealed class ObjectDetector : MonoBehaviour
         _webcamRaw = new WebCamTexture();
         _webcamBuffer = new RenderTexture(1080, 1080, 0);
         _preBuffer = new ComputeBuffer(InputTensorSize, sizeof(float));
-        _postBuffer = new ComputeBuffer(OutputDataCount, sizeof(float) * 6);
+        _postBuffer = new ComputeBuffer(OutputDataCount, sizeof(float) * 6,
+                                        ComputeBufferType.Append);
+        _drawArgs = new ComputeBuffer(4, sizeof(uint),
+                                      ComputeBufferType.IndirectArguments);
         _visualizer = new Material(_visualizerShader);
         _worker = ModelLoader.Load(_model).CreateWorker();
 
         _webcamRaw.Play();
         _previewUI.texture = _webcamBuffer;
+
+        _drawArgs.SetData(new [] {6, 0, 0, 0});
     }
 
     void OnDisable()
@@ -66,6 +72,9 @@ sealed class ObjectDetector : MonoBehaviour
 
         _postBuffer?.Dispose();
         _postBuffer = null;
+
+        _drawArgs?.Dispose();
+        _drawArgs = null;
 
         _worker?.Dispose();
         _worker = null;
@@ -112,9 +121,11 @@ sealed class ObjectDetector : MonoBehaviour
 
             reshaped.ToRenderTexture(reshapedRT);
 
+            _postBuffer.SetCounterValue(0);
             _compute.SetTexture(1, "_Input", reshapedRT);
             _compute.SetBuffer(1, "_Output", _postBuffer);
             _compute.Dispatch(1, 1, 1, 1);
+            ComputeBuffer.CopyCount(_postBuffer, _drawArgs, sizeof(uint));
 
             RenderTexture.ReleaseTemporary(reshapedRT);
         }
@@ -124,7 +135,7 @@ sealed class ObjectDetector : MonoBehaviour
     {
         _visualizer.SetBuffer("_Boxes", _postBuffer);
         _visualizer.SetPass(0);
-        Graphics.DrawProceduralNow(MeshTopology.Quads, 4, OutputDataCount);
+        Graphics.DrawProceduralIndirectNow(MeshTopology.Triangles, _drawArgs, 0);
     }
 
     #endregion

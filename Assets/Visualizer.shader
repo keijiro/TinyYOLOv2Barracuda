@@ -26,8 +26,8 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
         BoundingBox box = _Boxes[iid];
 
         // Bounding box vertex
-        float x = box.x + box.w * lerp(-0.5, 0.5, vid >> 1);
-        float y = box.y + box.h * lerp(-0.5, 0.5, (vid & 1) ^ (vid >> 1));
+        float x = box.x + box.w * lerp(-0.5, 0.5, vid & 1);
+        float y = box.y + box.h * lerp(-0.5, 0.5, vid < 2 || vid == 5);
 
         // Clip space to screen space
         x =  2 * x - 1;
