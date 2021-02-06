@@ -65,32 +65,36 @@ void Postprocessor(uint3 id : SV_DispatchThreadID)
     {
         uint ref_x = aidx * (5 + CLASS_COUNT);
 
+        // Bounding box / confidence
         float x = _Input[uint2(ref_x + 0, ref_y)].x;
         float y = _Input[uint2(ref_x + 1, ref_y)].x;
         float w = _Input[uint2(ref_x + 2, ref_y)].x;
         float h = _Input[uint2(ref_x + 3, ref_y)].x;
         float c = _Input[uint2(ref_x + 4, ref_y)].x;
 
+        // ArgMax(SoftMax(classes))
+        uint maxClass = 0;
         float maxScore = exp(_Input[uint2(ref_x + 5, ref_y)].x);
-        uint classIndex = 0;
         float scoreSum = maxScore;
         for (uint cidx = 1; cidx < CLASS_COUNT; cidx++)
         {
             float score = exp(_Input[uint2(ref_x + 5 + cidx, ref_y)].x);
             bool take = score > maxScore;
+            maxClass = take ? cidx : maxClass;
             maxScore = take ? score : maxScore;
-            classIndex = take ? cidx : classIndex;
             scoreSum += score;
         }
 
+        // Output structure
         BoundingBox box;
         box.x = (id.x + Sigmoid(x)) / CELLS_IN_ROW;
         box.y = (id.y + Sigmoid(y)) / CELLS_IN_ROW;
         box.w = exp(w) * anchors[aidx].x / CELLS_IN_ROW;
         box.h = exp(h) * anchors[aidx].y / CELLS_IN_ROW;
-        box.classIndex = classIndex;
+        box.classIndex = maxClass;
         box.confidence = Sigmoid(c) * maxScore / scoreSum;
 
+        // Thresholding
         if (box.confidence > 0.1) _Output.Append(box);
     }
 }
