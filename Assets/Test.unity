@@ -310,6 +310,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb4fe72f26079ec4ab79f6fadf0adc55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _threshold: 0.1
   _previewUI: {fileID: 1796359834}
   _model: {fileID: 5022602860645237092, guid: b4389846685ecfb4791a061d518fee66, type: 3}
   _compute: {fileID: 7200000, guid: e1163b2e257e2cd47b48c45aec261784, type: 3}
