@@ -8,6 +8,7 @@ sealed class ObjectDetector : MonoBehaviour
 {
     #region Editable attributes
 
+    [SerializeField, Range(0, 1)] float _threshold = 0.1f;
     [SerializeField] UI.RawImage _previewUI = null;
 
     #endregion
@@ -122,6 +123,7 @@ sealed class ObjectDetector : MonoBehaviour
             reshaped.ToRenderTexture(reshapedRT);
 
             _postBuffer.SetCounterValue(0);
+            _compute.SetFloat("_Threshold", _threshold);
             _compute.SetTexture(1, "_Input", reshapedRT);
             _compute.SetBuffer(1, "_Output", _postBuffer);
             _compute.Dispatch(1, 1, 1, 1);

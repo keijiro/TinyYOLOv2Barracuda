@@ -34,6 +34,7 @@ void Preprocessor(uint3 id : SV_DispatchThreadID)
 
 Texture2D _Input;
 AppendStructuredBuffer<BoundingBox> _Output;
+float _Threshold;
 
 #define CELLS_IN_ROW 13
 #define CLASS_COUNT 20
@@ -95,6 +96,6 @@ void Postprocessor(uint3 id : SV_DispatchThreadID)
         box.confidence = Sigmoid(c) * maxScore / scoreSum;
 
         // Thresholding
-        if (box.confidence > 0.1) _Output.Append(box);
+        if (box.confidence > _Threshold) _Output.Append(box);
     }
 }
