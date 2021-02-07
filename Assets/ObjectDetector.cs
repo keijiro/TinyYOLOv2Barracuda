@@ -38,7 +38,8 @@ sealed class ObjectDetector : MonoBehaviour
     WebCamTexture _webcamRaw;
     RenderTexture _webcamBuffer;
     ComputeBuffer _preBuffer;
-    ComputeBuffer _postBuffer;
+    ComputeBuffer _postBuffer1;
+    ComputeBuffer _postBuffer2;
     ComputeBuffer _drawArgs;
     Material _visualizer;
     IWorker _worker;
@@ -52,8 +53,10 @@ sealed class ObjectDetector : MonoBehaviour
         _webcamRaw = new WebCamTexture();
         _webcamBuffer = new RenderTexture(1080, 1080, 0);
         _preBuffer = new ComputeBuffer(InputTensorSize, sizeof(float));
-        _postBuffer = new ComputeBuffer(OutputDataCount, sizeof(float) * 6,
-                                        ComputeBufferType.Append);
+        _postBuffer1 = new ComputeBuffer(OutputDataCount, sizeof(float) * 6,
+                                         ComputeBufferType.Append);
+        _postBuffer2 = new ComputeBuffer(OutputDataCount, sizeof(float) * 6,
+                                         ComputeBufferType.Append);
         _drawArgs = new ComputeBuffer(4, sizeof(uint),
                                       ComputeBufferType.IndirectArguments);
         _visualizer = new Material(_visualizerShader);
@@ -70,8 +73,11 @@ sealed class ObjectDetector : MonoBehaviour
         _preBuffer?.Dispose();
         _preBuffer = null;
 
-        _postBuffer?.Dispose();
-        _postBuffer = null;
+        _postBuffer1?.Dispose();
+        _postBuffer1 = null;
+
+        _postBuffer2?.Dispose();
+        _postBuffer2 = null;
 
         _drawArgs?.Dispose();
         _drawArgs = null;
@@ -121,11 +127,17 @@ sealed class ObjectDetector : MonoBehaviour
 
             reshaped.ToRenderTexture(reshapedRT);
 
-            _postBuffer.SetCounterValue(0);
+            _postBuffer1.SetCounterValue(0);
             _compute.SetTexture(1, "_Input", reshapedRT);
-            _compute.SetBuffer(1, "_Output", _postBuffer);
+            _compute.SetBuffer(1, "_Output", _postBuffer1);
             _compute.Dispatch(1, 1, 1, 1);
-            ComputeBuffer.CopyCount(_postBuffer, _drawArgs, sizeof(uint));
+
+            _postBuffer2.SetCounterValue(0);
+            _compute.SetBuffer(2, "_Post2Input", _postBuffer1);
+            _compute.SetBuffer(2, "_Post2Output", _postBuffer2);
+            _compute.Dispatch(2, 1, 1, 1);
+
+            ComputeBuffer.CopyCount(_postBuffer2, _drawArgs, sizeof(uint));
 
             RenderTexture.ReleaseTemporary(reshapedRT);
         }
@@ -133,7 +145,7 @@ sealed class ObjectDetector : MonoBehaviour
 
     void OnPostRender()
     {
-        _visualizer.SetBuffer("_Boxes", _postBuffer);
+        _visualizer.SetBuffer("_Boxes", _postBuffer2);
         _visualizer.SetPass(0);
         Graphics.DrawProceduralIndirectNow(MeshTopology.Triangles, _drawArgs, 0);
     }

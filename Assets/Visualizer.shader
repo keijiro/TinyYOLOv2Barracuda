@@ -38,7 +38,7 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
 
         // Vertex attributes
         position = float4(x, y, 1, 1);
-        color = float4(GetClassColor(box.classIndex), box.confidence);
+        color = float4(GetClassColor(box.classIndex), box.score);
     }
 
     float4 FragmentKeyPoints(float4 position : SV_Position,

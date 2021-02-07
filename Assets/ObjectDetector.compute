@@ -1,5 +1,6 @@
-#pragma kernel Preprocessor
-#pragma kernel Postprocessor
+#pragma kernel Preprocess
+#pragma kernel Postprocess1
+#pragma kernel Postprocess2
 
 //
 // Preprocessor
@@ -10,7 +11,7 @@ RWBuffer<float> _Tensor;
 uint _ImageSize;
 
 [numthreads(8, 8, 1)]
-void Preprocessor(uint3 id : SV_DispatchThreadID)
+void Preprocess(uint3 id : SV_DispatchThreadID)
 {
     float2 uv = (id.xy + 0.5) / float2(_ImageSize, _ImageSize);
     uv.y = 1 - uv.y;
@@ -27,7 +28,7 @@ void Preprocessor(uint3 id : SV_DispatchThreadID)
 }
 
 // 
-// Postprocessor
+// 1st postprocessor (bounding box conversion)
 //
 
 #include "BoundingBox.hlsl"
@@ -51,9 +52,8 @@ static float2 anchors[] = { float2(1.08, 1.19),
                             float2(16.62, 10.52) };
 
 [numthreads(CELLS_IN_ROW, CELLS_IN_ROW, 1)]
-void Postprocessor(uint3 id : SV_DispatchThreadID)
+void Postprocess1(uint3 id : SV_DispatchThreadID)
 {
-
     // We're not sure why but the direction of the tensor is flipped, so we
     // read them in the reversed order.
     uint ref_y = (CELLS_IN_ROW - 1 - id.y) * CELLS_IN_ROW +
@@ -92,9 +92,68 @@ void Postprocessor(uint3 id : SV_DispatchThreadID)
         box.w = exp(w) * anchors[aidx].x / CELLS_IN_ROW;
         box.h = exp(h) * anchors[aidx].y / CELLS_IN_ROW;
         box.classIndex = maxClass;
-        box.confidence = Sigmoid(c) * maxScore / scoreSum;
+        box.score = Sigmoid(c) * maxScore / scoreSum;
 
         // Thresholding
-        if (box.confidence > 0.1) _Output.Append(box);
+        if (box.score > 0.1) _Output.Append(box);
     }
+}
+
+//
+// 2nd postprocessor (overlap removal)
+//
+
+ConsumeStructuredBuffer<BoundingBox> _Post2Input;
+AppendStructuredBuffer<BoundingBox> _Post2Output;
+
+#define MAX_DETECTION (CELLS_IN_ROW * CELLS_IN_ROW * ANCHOR_COUNT)
+
+groupshared BoundingBox _post2_boxes[MAX_DETECTION];
+groupshared bool _post2_flags[MAX_DETECTION];
+
+float CalculateIOU(BoundingBox box1, BoundingBox box2)
+{
+    float x0 = max(box1.x - box1.w / 2, box2.x - box2.w / 2);
+    float x1 = min(box1.x + box1.w / 2, box2.x + box2.w / 2);
+    float y0 = max(box1.y - box1.h / 2, box2.y - box2.h / 2);
+    float y1 = min(box1.y + box1.h / 2, box2.y + box2.h / 2);
+
+    float area0 = box1.w * box1.h;
+    float area1 = box2.w * box2.h;
+    float areaInner = max(0, x1 - x0) * max(0, y1 - y0);
+
+    return areaInner / (area0 + area1 - areaInner);
+}
+
+[numthreads(1, 1, 1)]
+void Postprocess2(uint3 id : SV_DispatchThreadID)
+{
+    uint entry_count, stride;
+    _Post2Input.GetDimensions(entry_count, stride);
+
+    for (uint i = 0; i < entry_count; i++)
+    {
+        _post2_boxes[i] = _Post2Input.Consume();
+        _post2_flags[i] = true;
+    }
+
+    for (i = 0; i < entry_count - 1; i++)
+    {
+        if (!_post2_flags[i]) continue;
+        for (uint j = i + 1; j < entry_count; j++)
+        {
+            if (!_post2_flags[j]) continue;
+            if (CalculateIOU(_post2_boxes[i], _post2_boxes[j]) < 0.3) continue;
+            if (_post2_boxes[i].score < _post2_boxes[j].score)
+            {
+                _post2_flags[i] = false;
+                break;
+            }
+            else
+                _post2_flags[j] = false;
+        }
+    }
+
+    for (i = 0; i < entry_count; i++)
+        if (_post2_flags[i]) _Post2Output.Append(_post2_boxes[i]);
 }

@@ -2,5 +2,5 @@ struct BoundingBox
 {
     float x, y, w, h;
     uint classIndex;
-    float confidence;
+    float score;
 };
