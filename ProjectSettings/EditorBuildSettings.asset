@@ -6,6 +6,6 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Test/WebcamTest.unity
+    path: Assets/Test/VisualizerCpu.unity
     guid: 58a5c9f352f9065429b98817a2c238f9
   m_configObjects: {}

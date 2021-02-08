@@ -3,15 +3,15 @@ using UI = UnityEngine.UI;
 
 namespace TinyYoloV2 {
 
-sealed class WebcamTest : MonoBehaviour
+sealed class VisualizerCpu : MonoBehaviour
 {
     #region Editable attributes
 
     [SerializeField, Range(0, 1)] float _scoreThreshold = 0.1f;
     [SerializeField, Range(0, 1)] float _overlapThreshold = 0.5f;
     [SerializeField] ResourceSet _resources = null;
-    [SerializeField] Shader _visualizer = null;
     [SerializeField] UI.RawImage _previewUI = null;
+    [SerializeField] Marker _markerPrefab = null;
 
     #endregion
 
@@ -19,11 +19,8 @@ sealed class WebcamTest : MonoBehaviour
 
     WebCamTexture _webcamRaw;
     RenderTexture _webcamBuffer;
-
     ObjectDetector _detector;
-
-    Material _material;
-    ComputeBuffer _drawArgs;
+    Marker[] _markers = new Marker[40];
 
     #endregion
 
@@ -41,27 +38,22 @@ sealed class WebcamTest : MonoBehaviour
         // Object detector initialization
         _detector = new ObjectDetector(_resources);
 
-        // Visualizer initialization
-        _material = new Material(_visualizer);
-        _drawArgs = new ComputeBuffer
-          (4, sizeof(uint), ComputeBufferType.IndirectArguments);
-        _drawArgs.SetData(new [] {6, 0, 0, 0});
+        // Marker populating
+        for (var i = 0; i < _markers.Length; i++)
+            _markers[i] = Instantiate(_markerPrefab, _previewUI.transform);
     }
 
     void OnDisable()
     {
         _detector?.Dispose();
         _detector = null;
-
-        _drawArgs?.Dispose();
-        _drawArgs = null;
     }
 
     void OnDestroy()
     {
         if (_webcamRaw != null) Destroy(_webcamRaw);
         if (_webcamBuffer != null) Destroy(_webcamBuffer);
-        if (_material != null) Destroy(_material);
+        for (var i = 0; i < _markers.Length; i++) Destroy(_markers[i]);
     }
 
     void Update()
@@ -79,16 +71,17 @@ sealed class WebcamTest : MonoBehaviour
         // Run the object detector with the webcam input.
         _detector.ProcessImage
           (_webcamBuffer, _scoreThreshold, _overlapThreshold);
-    }
 
-    void OnPostRender()
-    {
-        // Bounding box visualization
-        _detector.SetIndirectDrawCount(_drawArgs);
-        _material.SetBuffer("_Boxes", _detector.BoundingBoxBuffer);
-        _material.SetPass(0);
-        Graphics.DrawProceduralIndirectNow
-          (MeshTopology.Triangles, _drawArgs, 0);
+        // Marker update
+        var i = 0;
+
+        foreach (var box in _detector.DetectedObjects)
+        {
+            if (i == _markers.Length) break;
+            _markers[i++].SetAttributes(box);
+        }
+
+        for (; i < _markers.Length; i++) _markers[i].Hide();
     }
 
     #endregion

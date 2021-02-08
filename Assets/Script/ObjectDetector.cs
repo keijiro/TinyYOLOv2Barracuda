@@ -1,23 +1,11 @@
-using UnityEngine;
+using System.Collections.Generic;
 using Unity.Barracuda;
+using UnityEngine;
 
 namespace TinyYoloV2 {
 
-sealed class ObjectDetector : System.IDisposable
+public sealed class ObjectDetector : System.IDisposable
 {
-    #region Compile-time constants
-
-    // Pre-defined constants from our Tiny YOLOv2 model
-    const int ImageSize = 416;
-    const int CellsInRow = 13;
-    const int AnchorCount = 5;
-    const int ClassCount = 20;
-
-    const int InputTensorSize = ImageSize * ImageSize * 3;
-    const int OutputDataCount = CellsInRow * CellsInRow * AnchorCount;
-
-    #endregion
-
     #region Internal objects
 
     ResourceSet _resources;
@@ -35,13 +23,13 @@ sealed class ObjectDetector : System.IDisposable
     {
         _resources = resources;
 
-        _preBuffer = new ComputeBuffer(InputTensorSize, sizeof(float));
+        _preBuffer = new ComputeBuffer(Config.InputSize, sizeof(float));
 
         _post1Buffer = new ComputeBuffer
-          (OutputDataCount, BoundingBox.Size, ComputeBufferType.Append);
+          (Config.MaxDetection, BoundingBox.Size, ComputeBufferType.Append);
 
         _post2Buffer = new ComputeBuffer
-          (OutputDataCount, BoundingBox.Size, ComputeBufferType.Append);
+          (Config.MaxDetection, BoundingBox.Size, ComputeBufferType.Append);
 
         _countBuffer = new ComputeBuffer
           (1, sizeof(uint), ComputeBufferType.Raw);
@@ -73,13 +61,20 @@ sealed class ObjectDetector : System.IDisposable
 
     #endregion
 
-    #region Public methods
+    #region Public accessors
 
     public ComputeBuffer BoundingBoxBuffer
       => _post2Buffer;
 
     public void SetIndirectDrawCount(ComputeBuffer drawArgs)
       => ComputeBuffer.CopyCount(_post2Buffer, drawArgs, sizeof(uint));
+
+    public IEnumerable<BoundingBox> DetectedObjects
+      => _post2ReadCache ?? UpdatePost2ReadCache();
+
+    #endregion
+
+    #region Main image processing function
 
     public void ProcessImage
       (Texture sourceTexture, float scoreThreshold, float overlapThreshold)
@@ -90,18 +85,19 @@ sealed class ObjectDetector : System.IDisposable
 
         // Preprocessing
         var pre = _resources.preprocess;
+        var imageSize = Config.ImageSize;
         pre.SetTexture(0, "_Texture", sourceTexture);
         pre.SetBuffer(0, "_Tensor", _preBuffer);
-        pre.SetInt("_ImageSize", ImageSize);
-        pre.Dispatch(0, ImageSize / 8, ImageSize / 8, 1);
+        pre.SetInt("_ImageSize", imageSize);
+        pre.Dispatch(0, imageSize / 8, imageSize / 8, 1);
 
         // Run the YOLO model.
-        using (var tensor = new Tensor(1, ImageSize, ImageSize, 3, _preBuffer))
+        using (var tensor = new Tensor(1, imageSize, imageSize, 3, _preBuffer))
             _worker.Execute(tensor);
 
         // Output tensor (13x13x125) -> Temporary render texture (125x169)
         var reshape = new TensorShape
-          (1, CellsInRow * CellsInRow, AnchorCount * (5 + ClassCount), 1);
+          (1, Config.TotalCells, Config.OutputPerCell, 1);
 
         var reshapedRT = RenderTexture.GetTemporary
           (reshape.width, reshape.height, 0, RenderTextureFormat.RFloat);
@@ -128,6 +124,27 @@ sealed class ObjectDetector : System.IDisposable
         post2.SetBuffer(0, "_Count", _countBuffer);
         post2.SetBuffer(0, "_Output", _post2Buffer);
         post2.Dispatch(0, 1, 1, 1);
+
+        // Bounding box count after removal
+        ComputeBuffer.CopyCount(_post2Buffer, _countBuffer, 0);
+
+        // Read cache invalidation
+        _post2ReadCache = null;
+    }
+
+    #endregion
+
+    #region GPU to CPU readback function
+
+    BoundingBox[] _post2ReadCache;
+    int[] _countReadCache = new int[1];
+
+    BoundingBox[] UpdatePost2ReadCache()
+    {
+        _countBuffer.GetData(_countReadCache, 0, 0, 1);
+        var buffer = new BoundingBox[_countReadCache[0]];
+        _post2Buffer.GetData(buffer, 0, 0, buffer.Length);
+        return buffer;
     }
 
     #endregion
