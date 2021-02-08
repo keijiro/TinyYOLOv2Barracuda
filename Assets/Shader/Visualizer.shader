@@ -8,7 +8,7 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
     CGINCLUDE
 
     #include "UnityCG.cginc"
-    #include "BoundingBox.hlsl"
+    #include "Common.hlsl"
 
     StructuredBuffer<BoundingBox> _Boxes;
 

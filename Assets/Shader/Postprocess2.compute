@@ -1,0 +1,60 @@
+#pragma kernel Postprocess2
+
+//
+// 2nd postprocessor (overlap removal)
+//
+
+#include "Common.hlsl"
+
+// Input uniforms
+ConsumeStructuredBuffer<BoundingBox> _Input;
+float _Threshold;
+
+// Output uniforms
+AppendStructuredBuffer<BoundingBox> _Output;
+
+// Local arrays for data cache
+groupshared BoundingBox _boxes[MAX_DETECTION];
+groupshared bool _flags[MAX_DETECTION];
+
+[numthreads(1, 1, 1)]
+void Postprocess2(uint3 id : SV_DispatchThreadID)
+{
+    // Initialize data cache arrays
+    uint entry_count, stride;
+    _Input.GetDimensions(entry_count, stride);
+
+    for (uint i = 0; i < entry_count; i++)
+    {
+        _boxes[i] = _Input.Consume();
+        _flags[i] = true;
+    }
+
+    // Overlap test permutation
+    for (i = 0; i < entry_count - 1; i++)
+    {
+        if (!_flags[i]) continue;
+
+        for (uint j = i + 1; j < entry_count; j++)
+        {
+            if (!_flags[j]) continue;
+
+            // Overlap test
+            if (CalculateIOU(_boxes[i], _boxes[j]) < _Threshold) continue;
+
+            // Score comparison
+            if (_boxes[i].score < _boxes[j].score)
+            {
+                _flags[i] = false;
+                // The box in the outer loop is removed. Break the inner loop.
+                break;
+            }
+            else
+                _flags[j] = false;
+        }
+    }
+
+    // Output aggregation
+    for (i = 0; i < entry_count; i++)
+        if (_flags[i]) _Output.Append(_boxes[i]);
+}

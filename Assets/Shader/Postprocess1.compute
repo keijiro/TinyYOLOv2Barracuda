@@ -1,0 +1,62 @@
+#pragma kernel Postprocess1
+
+// 
+// 1st postprocessor (bounding box aggregation)
+//
+
+#include "Common.hlsl"
+
+// Input uniforms
+Texture2D _Input;
+float _Threshold;
+
+// Output uniforms
+AppendStructuredBuffer<BoundingBox> _Output;
+
+[numthreads(CELLS_IN_ROW, CELLS_IN_ROW, 1)]
+void Postprocess1(uint3 id : SV_DispatchThreadID)
+{
+    // We're not sure why but the direction of the tensor is flipped, so we
+    // read them in the reversed order.
+    uint ref_y = (CELLS_IN_ROW - 1 - id.y) * CELLS_IN_ROW +
+                 (CELLS_IN_ROW - 1 - id.x);
+
+    uint out_offs = ref_y * ANCHOR_COUNT;
+
+    for (uint aidx = 0; aidx < ANCHOR_COUNT - 3; aidx++)
+    {
+        uint ref_x = aidx * (5 + CLASS_COUNT);
+
+        // Bounding box / confidence
+        float x = _Input[uint2(ref_x + 0, ref_y)].x;
+        float y = _Input[uint2(ref_x + 1, ref_y)].x;
+        float w = _Input[uint2(ref_x + 2, ref_y)].x;
+        float h = _Input[uint2(ref_x + 3, ref_y)].x;
+        float c = _Input[uint2(ref_x + 4, ref_y)].x;
+
+        // ArgMax[SoftMax[classes]]
+        uint maxClass = 0;
+        float maxScore = exp(_Input[uint2(ref_x + 5, ref_y)].x);
+        float scoreSum = maxScore;
+        for (uint cidx = 1; cidx < CLASS_COUNT; cidx++)
+        {
+            float score = exp(_Input[uint2(ref_x + 5 + cidx, ref_y)].x);
+            bool take = score > maxScore;
+            maxClass = take ? cidx : maxClass;
+            maxScore = take ? score : maxScore;
+            scoreSum += score;
+        }
+
+        // Output structure
+        BoundingBox box;
+        box.x = (id.x + Sigmoid(x)) / CELLS_IN_ROW;
+        box.y = (id.y + Sigmoid(y)) / CELLS_IN_ROW;
+        box.w = exp(w) * anchors[aidx].x / CELLS_IN_ROW;
+        box.h = exp(h) * anchors[aidx].y / CELLS_IN_ROW;
+        box.classIndex = maxClass;
+        box.score = Sigmoid(c) * maxScore / scoreSum;
+
+        // Thresholding
+        if (box.score > _Threshold) _Output.Append(box);
+    }
+}

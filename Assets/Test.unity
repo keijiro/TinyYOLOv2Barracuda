@@ -310,10 +310,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bb4fe72f26079ec4ab79f6fadf0adc55, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _threshold: 0.1
+  _scoreThreshold: 0.05
+  _overlapThreshold: 0.3
   _previewUI: {fileID: 1796359834}
   _model: {fileID: 5022602860645237092, guid: b4389846685ecfb4791a061d518fee66, type: 3}
-  _compute: {fileID: 7200000, guid: e1163b2e257e2cd47b48c45aec261784, type: 3}
+  _preCompute: {fileID: 7200000, guid: e1163b2e257e2cd47b48c45aec261784, type: 3}
+  _post1Compute: {fileID: 7200000, guid: 18ad003250939f348ae5fe14fa96571f, type: 3}
+  _post2Compute: {fileID: 7200000, guid: a1436c8ac504d9347b92da69f906ad01, type: 3}
   _visualizerShader: {fileID: 4800000, guid: c2f5593a08772cf44990bf00c6f51285, type: 3}
 --- !u!1 &1796359831
 GameObject:
