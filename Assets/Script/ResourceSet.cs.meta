@@ -1,0 +1,15 @@
+fileFormatVersion: 2
+guid: d88389832f488944b888d5749841e75e
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - model: {fileID: 5022602860645237092, guid: b4389846685ecfb4791a061d518fee66, type: 3}
+  - preprocess: {fileID: 7200000, guid: e1163b2e257e2cd47b48c45aec261784, type: 3}
+  - postprocess1: {fileID: 7200000, guid: 18ad003250939f348ae5fe14fa96571f, type: 3}
+  - postprocess2: {fileID: 7200000, guid: a1436c8ac504d9347b92da69f906ad01, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
