@@ -45,6 +45,7 @@ sealed class ObjectDetector : MonoBehaviour
     ComputeBuffer _preBuffer;
     ComputeBuffer _post1Buffer;
     ComputeBuffer _post2Buffer;
+    ComputeBuffer _countBuffer;
     ComputeBuffer _drawArgs;
 
     Material _visualizer;
@@ -69,6 +70,8 @@ sealed class ObjectDetector : MonoBehaviour
                                          ComputeBufferType.Append);
         _post2Buffer = new ComputeBuffer(OutputDataCount, BoundingBox.Size,
                                          ComputeBufferType.Append);
+        _countBuffer = new ComputeBuffer(1, sizeof(uint),
+                                         ComputeBufferType.Raw);
         _drawArgs = new ComputeBuffer(4, sizeof(uint),
                                       ComputeBufferType.IndirectArguments);
         _drawArgs.SetData(new [] {6, 0, 0, 0});
@@ -90,6 +93,9 @@ sealed class ObjectDetector : MonoBehaviour
 
         _post2Buffer?.Dispose();
         _post2Buffer = null;
+
+        _countBuffer?.Dispose();
+        _countBuffer = null;
 
         _drawArgs?.Dispose();
         _drawArgs = null;
@@ -144,10 +150,14 @@ sealed class ObjectDetector : MonoBehaviour
 
         RenderTexture.ReleaseTemporary(reshapedRT);
 
+        // Bounding box count
+        ComputeBuffer.CopyCount(_post1Buffer, _countBuffer, 0);
+
         // 2nd postprocessing (overlap removal)
         _post2Buffer.SetCounterValue(0);
         _post2Compute.SetFloat("_Threshold", _overlapThreshold);
         _post2Compute.SetBuffer(0, "_Input", _post1Buffer);
+        _post2Compute.SetBuffer(0, "_Count", _countBuffer);
         _post2Compute.SetBuffer(0, "_Output", _post2Buffer);
         _post2Compute.Dispatch(0, 1, 1, 1);
 

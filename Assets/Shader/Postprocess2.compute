@@ -8,6 +8,7 @@
 
 // Input uniforms
 ConsumeStructuredBuffer<BoundingBox> _Input;
+ByteAddressBuffer _Count;
 float _Threshold;
 
 // Output uniforms
@@ -21,8 +22,8 @@ groupshared bool _flags[MAX_DETECTION];
 void Postprocess2(uint3 id : SV_DispatchThreadID)
 {
     // Initialize data cache arrays
-    uint entry_count, stride;
-    _Input.GetDimensions(entry_count, stride);
+    uint entry_count = _Count.Load(0);
+    if (entry_count == 0) return;
 
     for (uint i = 0; i < entry_count; i++)
     {
