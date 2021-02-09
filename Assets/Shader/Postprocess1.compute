@@ -21,8 +21,6 @@ void Postprocess1(uint3 id : SV_DispatchThreadID)
     uint ref_y = (CELLS_IN_ROW - 1 - id.y) * CELLS_IN_ROW +
                  (CELLS_IN_ROW - 1 - id.x);
 
-    uint out_offs = ref_y * ANCHOR_COUNT;
-
     for (uint aidx = 0; aidx < ANCHOR_COUNT; aidx++)
     {
         uint ref_x = aidx * (5 + CLASS_COUNT);
@@ -41,9 +39,11 @@ void Postprocess1(uint3 id : SV_DispatchThreadID)
         for (uint cidx = 1; cidx < CLASS_COUNT; cidx++)
         {
             float score = exp(_Input[uint2(ref_x + 5 + cidx, ref_y)].x);
-            bool take = score > maxScore;
-            maxClass = take ? cidx : maxClass;
-            maxScore = take ? score : maxScore;
+            if (score > maxScore)
+            {
+                maxClass = cidx;
+                maxScore = score;
+            }
             scoreSum += score;
         }
 
