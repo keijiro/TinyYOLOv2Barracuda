@@ -13,6 +13,10 @@ sealed class VisualizerCpu : MonoBehaviour
     [SerializeField] UI.RawImage _previewUI = null;
     [SerializeField] Marker _markerPrefab = null;
 
+    // Thresholds are exposed to the runtime UI.
+    public float scoreThreshold { set => _scoreThreshold = value; }
+    public float overlapThreshold { set => _overlapThreshold = value; }
+
     #endregion
 
     #region Internal objects
@@ -20,7 +24,7 @@ sealed class VisualizerCpu : MonoBehaviour
     WebCamTexture _webcamRaw;
     RenderTexture _webcamBuffer;
     ObjectDetector _detector;
-    Marker[] _markers = new Marker[40];
+    Marker[] _markers = new Marker[50];
 
     #endregion
 
