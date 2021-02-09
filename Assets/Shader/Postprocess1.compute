@@ -23,7 +23,7 @@ void Postprocess1(uint3 id : SV_DispatchThreadID)
 
     uint out_offs = ref_y * ANCHOR_COUNT;
 
-    for (uint aidx = 0; aidx < ANCHOR_COUNT - 3; aidx++)
+    for (uint aidx = 0; aidx < ANCHOR_COUNT; aidx++)
     {
         uint ref_x = aidx * (5 + CLASS_COUNT);
 
