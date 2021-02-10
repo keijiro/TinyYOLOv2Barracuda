@@ -1,14 +1,9 @@
 Shader "Hidden/TinyYOLOv2/Visualizer"
 {
-    Properties
-    {
-        _CameraFeed("", 2D) = ""{}
-    }
-
     CGINCLUDE
 
     #include "UnityCG.cginc"
-    #include "Common.hlsl"
+    #include "../Shader/Common.hlsl"
 
     StructuredBuffer<BoundingBox> _Boxes;
 
