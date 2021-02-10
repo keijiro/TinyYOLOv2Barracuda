@@ -9,14 +9,14 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
 
     float3 GetClassColor(uint i)
     {
-        float h = (i / 24.0) * 6 - 2;
+        float h = frac(i * 0.74) * 6 - 2;
         return saturate(float3(abs(h - 1) - 1, 2 - abs(h), 2 - abs(h - 2)));
     }
 
-    void VertexKeyPoints(uint vid : SV_VertexID,
-                         uint iid : SV_InstanceID,
-                         out float4 position : SV_Position,
-                         out float4 color : COLOR)
+    void Vertex(uint vid : SV_VertexID,
+                uint iid : SV_InstanceID,
+                out float4 position : SV_Position,
+                out float4 color : COLOR)
     {
         BoundingBox box = _Boxes[iid];
 
@@ -36,8 +36,8 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
         color = float4(GetClassColor(box.classIndex), box.score);
     }
 
-    float4 FragmentKeyPoints(float4 position : SV_Position,
-                             float4 color : COLOR) : SV_Target
+    float4 Fragment(float4 position : SV_Position,
+                    float4 color : COLOR) : SV_Target
     {
         return color * color.a;
     }
@@ -50,8 +50,8 @@ Shader "Hidden/TinyYOLOv2/Visualizer"
         {
             ZTest Always ZWrite Off Cull Off Blend One One
             CGPROGRAM
-            #pragma vertex VertexKeyPoints
-            #pragma fragment FragmentKeyPoints
+            #pragma vertex Vertex
+            #pragma fragment Fragment
             ENDCG
         }
     }
