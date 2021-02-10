@@ -37,19 +37,17 @@ quota. [Download the model file] from the ONNX Model Zoo page and put it in the
 Sample scenes
 -------------
 
-### WebcamTestGpu
+### VisualizerGpu
 
-**WebcamTestGpu** runs all the object detection & visualization processes
+**VisualizerGpu** runs all the object detection & visualization processes
 (preprocess, inference, post-process, overlap removal, and visualization) solely
 on GPU. It minimizes the CPU load and visualization latency, but you can't do
 anything more complicated than simple visualization like drawing rectangles or
 something on detected objects.
 
-<!--4567890123456789012345678901234567890123456789012345678901234567890123456-->
+### VisualizerCpu
 
-### WebcamTestCpu
-
-**WebcamTestCpu** runs the object detection on GPU and then reads the detection
+**VisualizerCpu** runs the object detection on GPU and then reads the detection
 results back to the CPU side. After that, it visualizes them using the Unity UI
 system. Even though this method runs slower than the GPU-only method, you can do
 complex processes using C# scripting.
