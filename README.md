@@ -37,6 +37,9 @@ quota. [Download the model file] from the ONNX Model Zoo page and put it in the
 Sample scenes
 -------------
 
+All these samples use `WebCamTexture` as a video input source. You have to
+connect a webcam or a UVC-compliant video capture device to the computer.
+
 ### VisualizerGpu
 
 **VisualizerGpu** runs all the object detection & visualization processes
@@ -51,3 +54,11 @@ something on detected objects.
 results back to the CPU side. After that, it visualizes them using the Unity UI
 system. Even though this method runs slower than the GPU-only method, you can do
 complex processes using C# scripting.
+
+### Pixelizer
+
+**Pixelizer** detects people from the input video stream and applies a
+pixelation effect to the person regions. It shows how to implement an image
+effect with the YOLO detector.
+
+![gif](https://i.imgur.com/ps7ppfp.gif)
