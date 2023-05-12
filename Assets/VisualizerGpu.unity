@@ -213,6 +213,7 @@ RectTransform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 0, y: 0, z: 0}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 1796359832}
   m_Father: {fileID: 0}
@@ -233,6 +234,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1464299272}
   - component: {fileID: 1464299271}
+  - component: {fileID: 1464299274}
   - component: {fileID: 1464299273}
   m_Layer: 0
   m_Name: Camera
@@ -294,6 +296,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_RootOrder: 1
@@ -310,11 +313,36 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f52346a87b6733b4fbb99d31d60fe745, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _source: {fileID: 1464299274}
   _scoreThreshold: 0.1
   _overlapThreshold: 0.5
   _resources: {fileID: 11400000, guid: aa179ffc9096d22498c54065c50dbfa4, type: 2}
   _visualizer: {fileID: 4800000, guid: c2f5593a08772cf44990bf00c6f51285, type: 3}
   _previewUI: {fileID: 1796359834}
+--- !u!114 &1464299274
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1464299270}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 40ff2e515a81541cbb664860588e2c6e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _sourceType: 0
+  _texture: {fileID: 2800000, guid: bc61b3cdc2215449693f549809cda2ac, type: 3}
+  _textureUrl: 
+  _video: {fileID: 0}
+  _videoUrl: 
+  _webcamName: 
+  _webcamResolution: {x: 1920, y: 1080}
+  _webcamFrameRate: 30
+  _camera: {fileID: 0}
+  _outputTexture: {fileID: 0}
+  _outputResolution: {x: 1024, y: 1024}
+  _shader: {fileID: 4800000, guid: 3f7d8db4748f54c638a46cec0b0e61f8, type: 3}
 --- !u!1 &1796359831
 GameObject:
   m_ObjectHideFlags: 0
@@ -344,6 +372,7 @@ RectTransform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 97072359}
   m_RootOrder: 0

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UI = UnityEngine.UI;
+using ImageSource = Klak.TestTools.ImageSource;
 
 namespace TinyYoloV2 {
 
@@ -7,6 +8,7 @@ sealed class VisualizerGpu : MonoBehaviour
 {
     #region Editable attributes
 
+    [SerializeField] ImageSource _source = null;
     [SerializeField, Range(0, 1)] float _scoreThreshold = 0.1f;
     [SerializeField, Range(0, 1)] float _overlapThreshold = 0.5f;
     [SerializeField] ResourceSet _resources = null;
@@ -16,9 +18,6 @@ sealed class VisualizerGpu : MonoBehaviour
     #endregion
 
     #region Internal objects
-
-    WebCamTexture _webcamRaw;
-    RenderTexture _webcamBuffer;
 
     ObjectDetector _detector;
 
@@ -31,13 +30,6 @@ sealed class VisualizerGpu : MonoBehaviour
 
     void Start()
     {
-        // Texture allocation
-        _webcamRaw = new WebCamTexture();
-        _webcamBuffer = new RenderTexture(1080, 1080, 0);
-
-        _webcamRaw.Play();
-        _previewUI.texture = _webcamBuffer;
-
         // Object detector initialization
         _detector = new ObjectDetector(_resources);
 
@@ -59,26 +51,16 @@ sealed class VisualizerGpu : MonoBehaviour
 
     void OnDestroy()
     {
-        if (_webcamRaw != null) Destroy(_webcamRaw);
-        if (_webcamBuffer != null) Destroy(_webcamBuffer);
         if (_material != null) Destroy(_material);
     }
 
     void Update()
     {
-        // Check if the webcam is ready (needed for macOS support)
-        if (_webcamRaw.width <= 16) return;
-
-        // Input buffer update with aspect ratio correction
-        var vflip = _webcamRaw.videoVerticallyMirrored;
-        var aspect = (float)_webcamRaw.height / _webcamRaw.width;
-        var scale = new Vector2(aspect, vflip ? -1 : 1);
-        var offset = new Vector2((1 - aspect) / 2, vflip ? 1 : 0);
-        Graphics.Blit(_webcamRaw, _webcamBuffer, scale, offset);
-
         // Run the object detector with the webcam input.
         _detector.ProcessImage
-          (_webcamBuffer, _scoreThreshold, _overlapThreshold);
+          (_source.Texture, _scoreThreshold, _overlapThreshold);
+
+        _previewUI.texture = _source.Texture;
     }
 
     void OnPostRender()

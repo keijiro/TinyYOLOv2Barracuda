@@ -1,5 +1,6 @@
 using UnityEngine;
 using UI = UnityEngine.UI;
+using ImageSource = Klak.TestTools.ImageSource;
 
 namespace TinyYoloV2 {
 
@@ -7,6 +8,7 @@ sealed class Pixelizer : MonoBehaviour
 {
     #region Editable attributes
 
+    [SerializeField] ImageSource _source = null;
     [SerializeField, Range(0, 1)] float _scoreThreshold = 0.1f;
     [SerializeField, Range(0, 1)] float _overlapThreshold = 0.5f;
     [SerializeField] ResourceSet _resources = null;
@@ -16,8 +18,7 @@ sealed class Pixelizer : MonoBehaviour
 
     #region Internal objects
 
-    WebCamTexture _webcamRaw;
-    RenderTexture _webcamBuffer;
+    RenderTexture _buffer;
 
     ObjectDetector _detector;
 
@@ -31,9 +32,7 @@ sealed class Pixelizer : MonoBehaviour
     void Start()
     {
         // Texture allocation
-        _webcamRaw = new WebCamTexture();
-        _webcamBuffer = new RenderTexture(1920, 1080, 0);
-        _webcamRaw.Play();
+        _buffer = new RenderTexture(1920, 1080, 0);
 
         // Object detector initialization
         _detector = new ObjectDetector(_resources);
@@ -56,28 +55,21 @@ sealed class Pixelizer : MonoBehaviour
 
     void OnDestroy()
     {
-        if (_webcamRaw != null) Destroy(_webcamRaw);
-        if (_webcamBuffer != null) Destroy(_webcamBuffer);
+        if (_buffer != null) Destroy(_buffer);
         if (_material != null) Destroy(_material);
     }
 
     void Update()
     {
-        // Check if the webcam is ready (needed for macOS support)
-        if (_webcamRaw.width <= 16) return;
-
         // Input buffer update
-        var vflip = _webcamRaw.videoVerticallyMirrored;
-        var scale = new Vector2(1, vflip ? -1 : 1);
-        var offset = new Vector2(0, vflip ? 1 : 0);
-        Graphics.Blit(_webcamRaw, _webcamBuffer, scale, offset);
+        Graphics.Blit(_source.Texture, _buffer);
 
         // Run the object detector with the webcam input.
         _detector.ProcessImage
-          (_webcamBuffer, _scoreThreshold, _overlapThreshold);
+          (_buffer, _scoreThreshold, _overlapThreshold);
 
         // Draw bouding boxes into the alpha channel of _webcamBuffer.
-        RenderTexture.active = _webcamBuffer;
+        RenderTexture.active = _buffer;
         _detector.SetIndirectDrawCount(_drawArgs);
         _material.SetBuffer("_Boxes", _detector.BoundingBoxBuffer);
         _material.SetPass(0);
@@ -85,7 +77,7 @@ sealed class Pixelizer : MonoBehaviour
     }
 
     void OnRenderImage(RenderTexture src, RenderTexture dst)
-      => Graphics.Blit(_webcamBuffer, dst, _material, 1);
+      => Graphics.Blit(_buffer, dst, _material, 1);
 
     #endregion
 }

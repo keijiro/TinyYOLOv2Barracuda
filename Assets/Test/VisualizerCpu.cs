@@ -1,5 +1,6 @@
 using UnityEngine;
 using UI = UnityEngine.UI;
+using ImageSource = Klak.TestTools.ImageSource;
 
 namespace TinyYoloV2 {
 
@@ -7,6 +8,7 @@ sealed class VisualizerCpu : MonoBehaviour
 {
     #region Editable attributes
 
+    [SerializeField] ImageSource _source = null;
     [SerializeField, Range(0, 1)] float _scoreThreshold = 0.1f;
     [SerializeField, Range(0, 1)] float _overlapThreshold = 0.5f;
     [SerializeField] ResourceSet _resources = null;
@@ -21,8 +23,6 @@ sealed class VisualizerCpu : MonoBehaviour
 
     #region Internal objects
 
-    WebCamTexture _webcamRaw;
-    RenderTexture _webcamBuffer;
     ObjectDetector _detector;
     Marker[] _markers = new Marker[50];
 
@@ -32,13 +32,6 @@ sealed class VisualizerCpu : MonoBehaviour
 
     void Start()
     {
-        // Texture allocation
-        _webcamRaw = new WebCamTexture();
-        _webcamBuffer = new RenderTexture(1080, 1080, 0);
-
-        _webcamRaw.Play();
-        _previewUI.texture = _webcamBuffer;
-
         // Object detector initialization
         _detector = new ObjectDetector(_resources);
 
@@ -55,26 +48,14 @@ sealed class VisualizerCpu : MonoBehaviour
 
     void OnDestroy()
     {
-        if (_webcamRaw != null) Destroy(_webcamRaw);
-        if (_webcamBuffer != null) Destroy(_webcamBuffer);
         for (var i = 0; i < _markers.Length; i++) Destroy(_markers[i]);
     }
 
     void Update()
     {
-        // Check if the webcam is ready (needed for macOS support)
-        if (_webcamRaw.width <= 16) return;
-
-        // Input buffer update with aspect ratio correction
-        var vflip = _webcamRaw.videoVerticallyMirrored;
-        var aspect = (float)_webcamRaw.height / _webcamRaw.width;
-        var scale = new Vector2(aspect, vflip ? -1 : 1);
-        var offset = new Vector2((1 - aspect) / 2, vflip ? 1 : 0);
-        Graphics.Blit(_webcamRaw, _webcamBuffer, scale, offset);
-
-        // Run the object detector with the webcam input.
+        // Run the object detector with the image input.
         _detector.ProcessImage
-          (_webcamBuffer, _scoreThreshold, _overlapThreshold);
+          (_source.Texture, _scoreThreshold, _overlapThreshold);
 
         // Marker update
         var i = 0;
@@ -86,6 +67,8 @@ sealed class VisualizerCpu : MonoBehaviour
         }
 
         for (; i < _markers.Length; i++) _markers[i].Hide();
+
+        _previewUI.texture = _source.Texture;
     }
 
     #endregion
