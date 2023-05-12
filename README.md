@@ -21,8 +21,8 @@ description page for details.
 System requirements
 -------------------
 
-- Unity 2020.2
-- Barracuda 1.3.0
+- Unity 2021.3
+- Barracuda 3.0.0
 
 How to run
 ----------
@@ -37,8 +37,10 @@ quota. [Download the model file] from the ONNX Model Zoo page and put it in the
 Sample scenes
 -------------
 
-All these samples use `WebCamTexture` as a video input source. You have to
-connect a webcam or a UVC-compliant video capture device to the computer.
+All these samples use the [ImageSource] class to feed images to the model. You
+can change the image source type from the drop down list.
+
+[ImageSource]: https://github.com/keijiro/TestTools
 
 ### VisualizerGpu
 
